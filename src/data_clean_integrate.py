@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import re
 import csv
+import xlrd
 
 
 def output_temperature_production_csv(state, county, station):
@@ -280,6 +281,59 @@ def merge_precipitation_temperature_production_data():
     df.to_csv('../data_sets/precipitation_temperature_production.csv', index=None)
 
 
+def disease_xls_to_csv():
+    """
+
+    :return:
+    """
+    raw_table = xlrd.open_workbook('../data_sets/disease_data/Disease-Database.xls').sheets()[0]
+
+    headers = ['state', 'year', 'total_percent_lost']
+    with open('../data_sets/disease_data/disease_data.csv', 'w') as f:
+        writer = csv.DictWriter(f, headers)
+        writer.writeheader()
+
+    result = {
+        'state': '',
+        'year': '',
+        'total_percent_lost': ''
+    }
+
+    head_list = ['', '', 'Lost', 'AL', 'AZ', 'AR', 'CA', 'FL', 'GA', 'LA', 'MS', 'MO', 'NM', 'NC', 'OK', 'SC', 'TN', 'TX', 'VA', 'Bales Lost', 'Lost', '', '']
+
+    for i in range(raw_table.nrows):
+        row_list = raw_table.row_values(i)
+        # print(row_list)
+        if row_list[1] == 'Total Percent Lost':
+            for j in range(3, 19):
+                result['state'] = head_list[j]
+                result['year'] = int(row_list[0])
+                result['total_percent_lost'] = row_list[j]
+                print(result)
+                with open('../data_sets/disease_data/disease_data.csv', 'a+', newline='') as f:
+                    writer = csv.DictWriter(f, headers)
+                    writer.writerow(result)
+
+    df = pd.read_csv('../data_sets/disease_data/disease_data.csv')
+    df = df.dropna()
+    df = df.sort_values(by=['state', 'year'])
+    df.to_csv('../data_sets/disease_data/disease_data.csv', index=None)
+
+
+def merge_temp_prec_dise_prod_data():
+    """
+
+    :return:
+    """
+    origin_df = pd.read_csv('../data_sets/precipitation_temperature_production.csv')
+    disease_df = pd.read_csv('../data_sets/disease_data/disease_data.csv')
+
+    df = pd.merge(origin_df, disease_df, how='inner',
+                  on=['state', 'year'])
+
+    df.to_csv('../data_sets/disease_precipitation_temperature_production.csv', index=None)
+
+
 def main():
     """
 
@@ -287,7 +341,9 @@ def main():
     """
     # temperature_data_pre_process()
     # precipitation_data_pre_process()
-    merge_precipitation_temperature_production_data()
+    # merge_precipitation_temperature_production_data()
+    # disease_xls_to_csv()
+    merge_temp_prec_dise_prod_data()
 
 
 main()
